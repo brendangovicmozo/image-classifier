@@ -1,103 +1,66 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import './Predict.css';
 
-const UploadPhoto = () => {
-  const [image, setImage] = useState(null);
+const Predict2 = () => {
+  const [file, setFile] = useState(null);
   const [prediction, setPrediction] = useState(null);
-  const fileInputRef = useRef(null);
+  const [error, setError] = useState(null);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setImage(reader.result);
-    };
-
-    if (file) {
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setImage(reader.result);
-    };
-
-    if (file) {
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleClickUpload = () => {
-    fileInputRef.current.click();
+    setFile(e.target.files[0]);
   };
 
   const handlePredict = async () => {
-    if (!image) {
+    setError(null);
+    setPrediction(null);
+
+    if (!file) {
+      setError('Please select a file.');
       return;
     }
-  
+
     const formData = new FormData();
-    formData.append('my_image', image);
-  
+    formData.append('file', file);
+
     try {
       const response = await fetch('http://localhost:5000/predict', {
         method: 'POST',
         body: formData
       });
-  
+
+      if (!response.ok) {
+        throw new Error('Failed to predict.');
+      }
+
       const data = await response.json();
-      setPrediction(data.prediction);
+      console.log('Prediction data:', data); // Log prediction data
+      setPrediction(data);
     } catch (error) {
-      console.error('Error predicting:', error);
+      console.error('Error predicting:', error.message); // Log prediction error
+      setError('Error predicting: ' + error.message);
     }
   };
 
   return (
     <div className='wrapper'>
-       <video autoPlay muted loop className="background-video">
-          <source src="/videos/Tech1.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      <div className="upload-container">
-        <div
-          className="upload-area"
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={handleClickUpload}
-        >
-          {image ? (
-            <img src={image} alt="Uploaded" className="uploaded-image" />
-          ) : (
-            <div className="upload-placeholder">Click or drag a photo here</div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            ref={fileInputRef}
-            className="file-input"
-          />
-        </div>
+      <h1>Image Recognition and Metrics</h1>
+      <div className='container'>
+        <input type="file" accept="image/*" onChange={handleFileChange} />
+        <button onClick={handlePredict}>Predict</button>
       </div>
-      <div className="results">
-        <div className="results-header">
-          <button className="predict-button" onClick={handlePredict}>Predict</button>
-          <h2>Results</h2>
+      {error && <p>{error}</p>}
+      {prediction && (
+        <div>
+          <p>Class: {prediction.class}</p>
+          <p>Probability: {prediction.probability}</p>
+          <p>Accuracy: {prediction.accuracy}</p>
+          <p>Precision: {prediction.precision}</p>
+          <p>Recall: {prediction.recall}</p>
+          <p>F1: {prediction.f1}</p>
         </div>
-        <p>{prediction ? `Prediction: ${prediction}` : "Results will appear here"}</p>
-      </div>
+      )}
     </div>
   );
 };
 
-export default UploadPhoto;
+export default Predict2;
